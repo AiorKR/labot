@@ -3,7 +3,7 @@
 # 가끔가다 애가 인코딩을 잘못 읽어서 오류를 냅니다. 그것을 대비하기 위해 'utf-8'으로 읽으라고 선언합니다.
 
 import discord, asyncio
-import labotenv
+import labotenv #토큰값 저장 env파일
 import requests
 import json
 from discord.ext import commands
@@ -30,7 +30,7 @@ headers = {
 }
 
 #도전어비스던전
-class challengeAbyss: 
+class ChallengeAbyss: 
     response = requests.get('https://developer-lostark.game.onstove.com/gamecontents/challenge-abyss-dungeons', headers=headers)
     if(response.status_code == 200):
         contents = response.json() #list 타입
@@ -43,7 +43,6 @@ class challengeAbyss:
             embed = discord.Embed(title= "도전 어비스 던전", description="", color=0x62c1cc) 
             embed.set_image(url=image)
             embed.add_field(name=areaName, value=startTime + " ~ " + endTime + "\n 최소입장레벨 : " + str(minItemLevel), inline=False)
-            print(endTime)
         else:
             status = "데이터에 오류가 발생하였습니다. code=200"
     else:
@@ -71,7 +70,7 @@ class challengeAbyss:
         embed.add_field(name="response.status_code", value=response.status_code, inline=False)
 
 #도전가디언토벌
-class challengeGuardian:    
+class ChallengeGuardian:    
     response = requests.get('https://developer-lostark.game.onstove.com/gamecontents/challenge-guardian-raids', headers=headers)
     if(response.status_code == 200):
         contents = response.json() #dict 타입
@@ -107,20 +106,20 @@ class challengeGuardian:
 
 @bot.command()
 async def 도비스(ctx):
-    ca = challengeAbyss.embed
+    ca = ChallengeAbyss().embed
     await ctx.message.delete()
     await ctx.send(embed=ca, delete_after=30)
 
 @bot.command()
 async def 도가토(ctx):
-    cg = challengeGuardian.embed
+    cg = ChallengeGuardian().embed
     await ctx.message.delete()
     await ctx.send(embed=cg, delete_after=30)
 
 @bot.command()
 async def 주간(ctx):
-    ca = challengeAbyss
-    cg = challengeGuardian
+    ca = ChallengeAbyss()
+    cg = ChallengeGuardian()
     embed = discord.Embed(title= "주간 컨텐츠", description="", color=0x62c1cc)
     for i in range(0, 3):
         embed.add_field(name="", value=cg.raid[i]['Name']+" : "+cg.raid[i]['StartTime']+" ~ "+cg.raid[i]['EndTime'], inline=False)
