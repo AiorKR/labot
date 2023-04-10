@@ -29,6 +29,43 @@ headers = {
     'authorization': latoken,
 }
 
+#캐릭터
+class Character:
+    def __init__(self, str):
+        self.str = str
+        
+    def search(self):
+        response = requests.get('https://developer-lostark.game.onstove.com/armories/characters/'+self.str, headers=headers)
+        contents = response.json() #dict 타입
+        dictPreset = contents["ArmoryProfile"]
+
+        serverName = dictPreset["ServerName"]
+        expeditionLevel = dictPreset["ExpeditionLevel"]
+        if(str(dictPreset["Title"]) == "None"):
+            title = "없음"
+        else:
+            title = dictPreset["Title"]
+        pvpGradeName = dictPreset["PvpGradeName"]
+        guildName = dictPreset["GuildName"]
+        townInfo = "Lv." + str(dictPreset["TownLevel"])+" "+dictPreset["TownName"]
+        miniInfo= "[`서버` : %s] [`원정대 레벨` : %s] [`칭호` : %s]\n[`PvP` : %s] [`길드` : %s]\n[`영지` : %s]"%(serverName, expeditionLevel, title, pvpGradeName, guildName, townInfo)
+        
+        className = dictPreset["CharacterClassName"]
+        itemLevel = dictPreset["ItemAvgLevel"]
+        charLevel = dictPreset["CharacterLevel"]
+        skillPoint = dictPreset["TotalSkillPoint"]
+        charInfo = "`직업` : %s\n`아이템 레벨` : %s\n`전투레벨` : %s\n`보유 스킬 포인트` : %s"%(className, itemLevel, charLevel, skillPoint)
+
+        specPreset = dictPreset["Stats"]
+        specDict = {}
+        spec = "`공격력` : %s\n`최대 생명력` : %s\n"
+        embed = discord.Embed(title= self.str, description=miniInfo, color=0x62c1cc)
+        embed.add_field(name="캐릭터 정보", value=charInfo, inline=True)
+        embed.add_field(name="기본 특성", value=spec, inline=True)
+        #embed.add_field(name="전투 특성", value=, inline=True)
+        #embed.add_field(name="각인 효과", value=, inline=True)
+        return embed
+        
 #도전어비스던전
 class ChallengeAbyss: 
     response = requests.get('https://developer-lostark.game.onstove.com/gamecontents/challenge-abyss-dungeons', headers=headers)
@@ -103,6 +140,12 @@ class ChallengeGuardian:
             status = "Gateway Timeout"
         embed = discord.Embed(title= status, description="", color=0x62c1cc)
         embed.add_field(name="response.status_code", value=response.status_code, inline=False)
+
+@bot.command()
+async def 검색(ctx, nickname):
+    sC=Character(nickname)
+    await ctx.send(embed=sC.search(), delete_after=300)
+    
 
 @bot.command()
 async def 도비스(ctx):
