@@ -22,44 +22,39 @@ kst = datetime.timezone(datetime.timedelta(hours=9)) #KST(한국시간)으로 �
 ri = datetime.time(hour=10, minute=1, tzinfo=kst)
 startEventsTime = datetime.time(hour=10, minute=1, tzinfo=kst)
 endEventsTime = datetime.time(hour=22, tzinfo=kst)
-chaosGateTime = datetime.time(minute=48, tzinfo=kst)
+chaosGateTime = []
+for i in range(0,23):
+    if(i>4 and i<10):
+        continue
+    else:
+        chaosGateTime.append(datetime.time(hour=i, minute = 55, tzinfo=kst))
 scheduleTime = datetime.time(hour=7, tzinfo=kst)
 
 ##################################################
 #정기 스케쥴
-"""
-@tasks.loop(time=ri) #정기점검 루틴
-async def print_test():
-    now = datetime.datetime.now()
-    await bot.get_guild(labotenv.serverId).get_channel(labotenv.channelId).send(now, delete_after=30)
-    print(now)
 
-@tasks.loop(time=startEventsTime) #이벤트 시작 루틴
-async def startEvents():
-    event = Event()
-    await bot.get_guild(labotenv.serverId).get_channel(labotenv.channelId).send(embed=event.endEventList(), delete_after=3600)
-
-@tasks.loop(time=endEventsTime) #이벤트 종료 루틴
-async def endEvents():
-    laRole = bot.get_guild(labotenv.serverId).get_role(labotenv.lostArkId) #"서버 내 로스트아크 플레이어들이 부여받은 역할"의 ID
-    event = Event()
-    await bot.get_guild(labotenv.serverId).get_channel(labotenv.channelId).send("{}".format(laRole.mention), delete_after=28800)
-    await bot.get_guild(labotenv.serverId).get_channel(labotenv.channelId).send(embed=event.endEventList(), delete_after=28800)
-    print(laRole)
-    time.sleep(1) #중복발송 방지
-"""
 @tasks.loop(time=scheduleTime) #스케줄 루틴
 async def adventure():
     cal = Calendar()
     await bot.get_guild(labotenv.serverId).get_channel(labotenv.channelId).send(embed=cal.adventure(), delete_after=36000)
-"""
-@tasks.loop(seconds=20) #카오스게이트 루틴
+
+@tasks.loop(time=chaosGateTime) #카오스게이트 루틴
 async def chaosGate():  
     now = datetime.datetime.now()
     print(now)
-    time.sleep()
-"""
-    ##################################################
+    timeDelay = datetime.timedelta(minutes = 5)
+    resTime = now + timeDelay
+    strTime = str(resTime)[:10] + 'T' + str(resTime)[11:16]+':00'
+    cal = Calendar()
+    map = Item()
+    for i in cal.chaosGate():
+        if(i == strTime):
+            await bot.get_guild(labotenv.serverId).get_channel(labotenv.channelId).send(embed=map.legendaryMap(), delete_after=900)
+            break
+        else:
+            continue
+
+##################################################
 @bot.event
 async def on_ready(): # 봇이 준비가 되면 1회 실행되는 부분
     await bot.change_presence(status=discord.Status.online, activity=discord.Game('언제나 함께')) #dnd= '다른 용무 중', idle = '자리 비움'
@@ -70,7 +65,7 @@ async def on_ready(): # 봇이 준비가 되면 1회 실행되는 부분
     #정기루틴 시작
     #############
     adventure.start()
-    #chaosGate.start()
+    chaosGate.start()
 
 #LostArk API 공통 헤더
 headers = {
@@ -352,14 +347,13 @@ class Calendar:
                             continue
                     else:
                         continue
-            chaosGate = contents[indexInt]['StartTimes']
-            testStr=str(now)[:10] + 'T' + str(now)[11:16]+':00'
+            results = contents[indexInt]['StartTimes']
         else:
             code = {201 : 'Bad Request', 401 : 'Unauthorized', 403 : 'Forbidden', 404 : 'Not Found', 415 : 'Unsupported Media Type', 429 : 'Rate Limite Exceeded', 500 : 'Internal Server Error', 502 : 'Bad Gateway', 503 : 'Service Unavailable', 504 : 'Gateway Timeout'}                
             for key in code.keys():
                 if(response.status_code == key):
-                    status = code.get(key)
-        return testStr
+                    results = code.get(key)
+        return results
 
 
 #아이템
@@ -374,6 +368,8 @@ class Item:
             itemName = ['태양의','명예의 파편 주머니(대)']
             multipleInt=[16,8,4,8]
             sum = 0
+            sumJem = 0
+            averJem = 0
             indexInt = 0
             embed = discord.Embed(title= str(now)[:16] + ' 현재 전설지도', description='', color=0x62c1cc)
             for i in itemName:
@@ -396,57 +392,49 @@ class Item:
             response = requests.get('https://developer-lostark.game.onstove.com/auctions/options', headers=headers)
             classList = response.json()['Classes']
             jemPrice = []
-            for i in classList:
+            for i in range(1,6):
                 json_data2 = {
-                                    'ItemLevelMin': 0,
-                                    'ItemLevelMax': 0,
-                                    'ItemGradeQuality': None,
-                                    'SkillOptions': [
-                                                        {
-                                                            'FirstOption': None,
-                                                            'SecondOption': None,
-                                                            'MinValue': None,
-                                                            'MaxValue': None,
-                                                        },
-                                                    ],
-                                    'EtcOptions': [
-                                                        {
-                                                            'FirstOption': None,
-                                                            'SecondOption': None,
-                                                            'MinValue': None,
-                                                            'MaxValue': None,
-                                                        },
-                                                    ],
-                                    'Sort': 'BUY_PRICE',
-                                    'CategoryCode': 210000,
-                                    'CharacterClass': i,
-                                    'ItemTier': 3,
-                                    'ItemGrade': '고급',
-                                    'ItemName': '1레벨',
-                                    'PageNo': 1,
-                                    'SortCondition': 'ASC',
-                                }    
+                                'ItemLevelMin': 0,
+                                'ItemLevelMax': 0,
+                                'ItemGradeQuality': None,
+                                'SkillOptions': [
+                                                    {
+                                                        'FirstOption': None,
+                                                        'SecondOption': None,
+                                                        'MinValue': None,
+                                                        'MaxValue': None,
+                                                    },
+                                                ],
+                                'EtcOptions': [
+                                                    {
+                                                        'FirstOption': None,
+                                                        'SecondOption': None,
+                                                        'MinValue': None,
+                                                        'MaxValue': None,
+                                                    },
+                                                ],
+                                'Sort': 'BUY_PRICE',
+                                'CategoryCode': 210000,
+                                '$or':[{'CharacterClass': '버서커'}, {'CharacterClass': '디스트로이어'}, {'CharacterClass': '워로드'}, {'CharacterClass': '홀리나이트'}, {'CharacterClass': '슬레이어'}, {'CharacterClass': '아르카나'}, {'CharacterClass': '서머너'}, {'CharacterClass': '바드'}, {'CharacterClass': '소서리스'}, {'CharacterClass': '배틀마스터'}, {'CharacterClass': '인파이터'}, {'CharacterClass': '기공사'}, {'CharacterClass': '창술사'}, {'CharacterClass': '스트라이커'}, {'CharacterClass': '블레이드'}, {'CharacterClass': '데모닉'}, {'CharacterClass': '리퍼'}, {'CharacterClass': '호크아이'}, {'CharacterClass': '데빌헌터'}, {'CharacterClass': '블래스터'}, {'CharacterClass': '스카우터'}, {'CharacterClass': '건슬링어'}, {'CharacterClass': '도화가'}, {'CharacterClass': '기상술사'}],
+                                'ItemTier': 3,
+                                'ItemGrade': '고급',
+                                'ItemName': '1레벨',
+                                'PageNo': i,
+                                'SortCondition': 'ASC',
+                            }    
                 response2 = requests.post('https://developer-lostark.game.onstove.com/auctions/items', headers=headers, json=json_data2)
                 results = response2.json()['Items']
                 for j in results:
-                    if(len(jemPrice) == 0):
-                        jemPrice.append(j['AuctionInfo']['StartPrice'])
-                    """
+                    if(len(jemPrice)>48):
+                        break
                     else:
-                        for k in range(len(jemPrice)):
-                            if(jemPrice[k] >= j['AuctionInfo']['StartPrice']):
-                                jemPrice.insert(k, j['AuctionInfo']['StartPrice'])
+                        jemPrice.append(j['AuctionInfo']['BuyPrice'])
+                        sumJem += j['AuctionInfo']['BuyPrice']
                         
-
-                       
-                            if(k >= response2.json()['Items'][j]['AuctionInfo']['StartPrice']):
-                                jemPrice.append(response2.json()['Items'][j]['AuctionInfo']['StartPrice'])
-                                jemPrice.insert(0, response2.json()['Items'][j]['AuctionInfo']['StartPrice'])
-                            else:
-                        """                           
-            #sum += (jemPrice*48)
-            embed.add_field(name='', value='`3티어 1레벨 보석` : `%s` (총 48개)'%(jemPrice) + '\n', inline=False)
-            embed.add_field(name='골드', value='**`현재 가치` : `%s`골드\n**`손익분기` : `%s`골드'%(str(sum), str(round(sum*0.863636))), inline=False)
+            averJem = sumJem / 48
+            sum += sumJem
+            embed.add_field(name='', value='`3티어 1레벨 보석` : 평균 `%s`골드 (총 48개)'%(str(round(averJem,2))) + '\n', inline=False)
+            embed.add_field(name='가격', value='**`현재가` : `%s`골드\n`손익(사용 시)` : `%s`골드\n`손익(판매 시)` : `%s`골드'%(str(sum), str(round(sum*0.909090)), str(round(sum*0.863636))), inline=False)
         else:
             code = {201 : 'Bad Request', 401 : 'Unauthorized', 403 : 'Forbidden', 404 : 'Not Found', 415 : 'Unsupported Media Type', 429 : 'Rate Limite Exceeded', 500 : 'Internal Server Error', 502 : 'Bad Gateway', 503 : 'Service Unavailable', 504 : 'Gateway Timeout'}                
             for key in code.keys():
@@ -455,7 +443,7 @@ class Item:
             embed = discord.Embed(title= status, description='', color=0x62c1cc)
             embed.add_field(name='response.status_code', value=response.status_code, inline=False)
 
-        return jemPrice
+        return embed
 
 #이벤트
 class Event:
@@ -540,6 +528,12 @@ async def 검색(ctx, nickname):
     await ctx.send(embed=sC.search(), delete_after=120)
 
 @bot.command()
+async def 검색고정(ctx, nickname):
+    sC=Character(nickname)
+    await ctx.message.delete()
+    await ctx.send(embed=sC.search())
+
+@bot.command()
 async def 경매(ctx, amount: int):
   if amount>0:
     la = LootAuction(amount)
@@ -579,6 +573,12 @@ async def 이벤트(ctx):
     await ctx.send(embed=event.eventList(), delete_after=60)
 
 @bot.command()
+async def 전설지도(ctx):
+  map = Item()
+  await ctx.message.delete()
+  await ctx.send(embed=map.legendaryMap(), delete_after=60)
+
+@bot.command()
 async def 주간(ctx):
     ca = ChallengeAbyss()
     cg = ChallengeGuardian()
@@ -612,24 +612,10 @@ async def 명령어(ctx):
     embed.add_field(name="모험섬", value="**오늘의 모험섬을 알려줍니다.", inline=False)
     embed.add_field(name="수집품", value="/수집품 `닉네임` : 해당 캐릭터의 수집형 포인트 정보를 알려줍니다", inline=False)
     embed.add_field(name="이벤트", value="**현재 진행중인 이벤트를 알려줍니다.", inline=False)
+    embed.add_field(name="전설지도", value="**현재 전설지도 가격을 알려줍니다.", inline=False)
     embed.add_field(name="주간", value="**주간 컨텐츠 현황을 알려줍니다.", inline=False)
     embed.add_field(name="호출", value="**채널 주인을 호출합니다.", inline=False)
     await ctx.message.delete()
     await ctx.send(embed=embed, delete_after=300)
-
-@bot.command()
-async def 전설지도(ctx):
-  map = Item()
-  await ctx.message.delete()
-  print(map.legendaryMap())
-  #await ctx.send(embed=map.legendaryMap(), delete_after=60)
-
-@bot.command()
-async def 테스트(ctx):
-  test = Calendar()
-  await ctx.message.delete()
-  print(test.chaosGate())
-  print(datetime.datetime.now())
-  #await ctx.send(embed=map.legendaryMap(), delete_after=60)  
 
 bot.run(token) # 봇 실행부분
